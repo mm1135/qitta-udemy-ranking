@@ -10,6 +10,13 @@ interface PriceHistoryChartProps {
   priceHistory: PriceHistory[];
 }
 
+// Chartライブラリの型を定義
+interface ChartContext {
+  parsed: {
+    y: number;
+  };
+}
+
 export default function PriceHistoryChart({ priceHistory }: PriceHistoryChartProps) {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
@@ -58,7 +65,7 @@ export default function PriceHistoryChart({ priceHistory }: PriceHistoryChartPro
               },
               tooltip: {
                 callbacks: {
-                  label: function(context: any) {
+                  label: function(context: ChartContext) {
                     return `¥${context.parsed.y.toLocaleString()}`;
                   }
                 }
@@ -68,7 +75,9 @@ export default function PriceHistoryChart({ priceHistory }: PriceHistoryChartPro
               y: {
                 beginAtZero: false,
                 ticks: {
-                  callback: function(value: any) {
+                  callback: function(tickValue: string | number) {
+                    // 文字列が来た場合も考慮
+                    const value = typeof tickValue === 'string' ? parseFloat(tickValue) : tickValue;
                     return '¥' + value.toLocaleString();
                   }
                 }

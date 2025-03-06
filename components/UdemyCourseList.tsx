@@ -37,13 +37,6 @@ interface UdemyCourse {
   tags?: CourseTag[];
 }
 
-interface Pagination {
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
-}
-
 export default function UdemyCourseList({ 
   courses: initialCourses, 
   period,
@@ -64,7 +57,6 @@ export default function UdemyCourseList({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const observer = useRef<IntersectionObserver | null>(null);
   const lastCourseElementRef = useRef<HTMLDivElement | null>(null);
 
   // コンポーネントの状態に表示中の全タグを追加
@@ -110,17 +102,22 @@ export default function UdemyCourseList({
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const data = tag
-        ? await fetchCoursesByTag(tag, period, nextPage)
-        : await fetchRankingData(period, nextPage);
-        
+      // APIエンドポイントを修正
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const url = tag
+        ? `${baseUrl}/api/courses/bytag/${encodeURIComponent(tag)}?period=${period}&page=${nextPage}`
+        : `${baseUrl}/api/rankings/${period}?page=${nextPage}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
       // 重複を防ぐために既存のコースIDを追跡
       const existingIds = new Set(courses.map(course => course.id));
       const newCourses = data.courses.filter((course: UdemyCourse) => !existingIds.has(course.id));
       
       setCourses(prev => [...prev, ...newCourses]);
       setPage(nextPage);
-      setHasMore(data.pagination.hasMore && newCourses.length > 0);
+      setHasMore(data.pagination.hasMore);
     } catch (error) {
       console.error("追加データの取得に失敗:", error);
     } finally {
@@ -128,30 +125,30 @@ export default function UdemyCourseList({
     }
   }, [period, page, hasMore, loadingMore, tag, courses]);
 
-  // Intersection Observerの設定
+  // Intersection Observerの設定を修正
   useEffect(() => {
     if (loading) return;
     
-    if (observer.current) {
-      observer.current.disconnect();
-    }
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMoreCourses();
+        }
+      },
+      { threshold: 0.1 }
+    );
     
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadMoreCourses();
-      }
-    }, { threshold: 0.5 });
-    
-    if (lastCourseElementRef.current) {
-      observer.current.observe(lastCourseElementRef.current);
+    const lastElement = lastCourseElementRef.current;
+    if (lastElement) {
+      observer.observe(lastElement);
     }
     
     return () => {
-      if (observer.current) {
-        observer.current.disconnect();
+      if (lastElement) {
+        observer.unobserve(lastElement);
       }
     };
-  }, [loading, hasMore, loadMoreCourses]);
+  }, [loading, hasMore, loadingMore, loadMoreCourses]);
   
   // コースの引用記事を取得
   const fetchReferences = useCallback(async (courseId: string) => {

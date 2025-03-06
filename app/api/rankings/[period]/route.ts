@@ -1,33 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPeriodRanking } from '@/lib/courseRanking';
+import { getPeriodRankingFromDB } from '@/lib/courseRanking';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { period: string } }
+  { params }: { params: Promise<{ period: string }> }
 ) {
   try {
-    const period = params.period as 'all' | 'yearly' | 'monthly';
+    const period = (await params).period;
     const searchParams = request.nextUrl.searchParams;
-    
-    // クエリパラメータを取得
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     
     if (!['all', 'yearly', 'monthly'].includes(period)) {
       return NextResponse.json(
-        { error: '無効な期間パラメータです' },
+        { error: '無効な期間が指定されました' },
         { status: 400 }
       );
     }
+
+    const result = await getPeriodRankingFromDB(
+      period as 'all' | 'yearly' | 'monthly',
+      page,
+      limit
+    );
     
-    const result = await getPeriodRanking(period, page, limit);
-    
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   } catch (error) {
-    console.error('Rankings API error:', error);
+    console.error('Error in rankings API:', error);
     return NextResponse.json(
-      { error: 'ランキングデータの取得中にエラーが発生しました' },
-      { status: 500 }
+      { error: 'Internal Server Error' },
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
     );
   }
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 } 

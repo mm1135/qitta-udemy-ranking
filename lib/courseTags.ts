@@ -39,6 +39,20 @@ export async function getPopularCourseTags(limit = 50) {
   }
 }
 
+// 条件を構築するための具体的な型を定義
+interface TagFilterCondition {
+  qiitaArticles: {
+    some: {
+      tags: {
+        hasSome: string[];
+      };
+      publishedAt?: {
+        gte: Date;
+      };
+    };
+  };
+}
+
 /**
  * タグでコースをフィルタリング
  */
@@ -57,7 +71,7 @@ export async function getCoursesByTags(tags: string[], period: 'all' | 'yearly' 
     }
     
     // 条件を構築
-    const whereCondition: any = {
+    const whereCondition: TagFilterCondition = {
       qiitaArticles: {
         some: {
           tags: {
@@ -119,7 +133,7 @@ export async function getCoursesByTags(tags: string[], period: 'all' | 'yearly' 
         .slice(0, 5); // 上位5件のみ
       
       // qiitaArticlesを削除して新しいオブジェクトを返す
-      const { qiitaArticles, ...courseData } = course;
+      const {...courseData } = course;
       
       return {
         ...courseData,
@@ -153,4 +167,4 @@ export async function getCoursesByTags(tags: string[], period: 'all' | 'yearly' 
       }
     };
   }
-} 
+}

@@ -2,7 +2,7 @@ import { ApolloServer } from '@apollo/server';
 import { startServerAndCreateNextHandler } from '@as-integrations/next';
 import { gql } from 'graphql-tag';
 import prisma from '@/lib/prisma';
-import { UdemyCourse } from '@/types';
+import { NextRequest } from 'next/server';
 
 const typeDefs = gql`
   type UdemyCourse {
@@ -66,7 +66,7 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    trendingCourses: async (_: any, { limit = 10 }: { limit?: number }) => {
+    trendingCourses: async ({ limit = 10 }: { limit?: number }) => {
       try {
         return await prisma.udemyCourse.findMany({
           take: limit,
@@ -87,7 +87,7 @@ const resolvers = {
       }
     },
     
-    newCourses: async (_: any, { limit = 10 }: { limit?: number }) => {
+    newCourses: async ({ limit = 10 }: { limit?: number }) => {
       try {
         return await prisma.udemyCourse.findMany({
           take: limit,
@@ -106,7 +106,7 @@ const resolvers = {
       }
     },
     
-    popularTags: async (_: any, { limit = 30 }: { limit?: number }) => {
+    popularTags: async ({ limit = 30 }: { limit?: number }) => {
       try {
         const tags = await prisma.courseTag.groupBy({
           by: ['tag'],
@@ -137,6 +137,11 @@ const server = new ApolloServer({
   resolvers,
 });
 
-const handler = startServerAndCreateNextHandler(server);
+// Next.js 15の型定義に合わせて、ハンドラをラップする関数を作成
+const handlerWithContext = async (req: NextRequest) => {
+  const handler = startServerAndCreateNextHandler(server);
+  return handler(req);
+};
 
-export { handler as GET, handler as POST }; 
+// 第2引数のコンテキストを受け取れるようにエクスポート
+export { handlerWithContext as GET, handlerWithContext as POST }; 

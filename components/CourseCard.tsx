@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StarIcon } from "lucide-react";
-import { UdemyCourse, CourseTag } from '@/types';
+import { UdemyCourse } from '@/types';
 
 interface CourseCardProps {
   course: UdemyCourse;

@@ -1,19 +1,16 @@
 import { Suspense } from 'react';
 import Link from "next/link";
-import { getCoursesByTags } from "@/lib/courseTags";
+import { getCoursesByTags, transformCourseData } from "@/lib/courseRanking";
 import UdemyCourseList from "@/components/UdemyCourseList";
 import TagSearch from "@/components/TagSearch";
 
 type Period = "yearly" | "monthly";
 
-export default async function TagPeriodPage({ 
-  params 
-}: { 
-  params: { tag: string; period: Period } 
-}) {
-  const tag = decodeURIComponent(params.tag);
-  const period = params.period;
-  const data = await getCoursesByTags([tag], period);
+export default async function TagPeriodPage({ params }: { params: Promise<{ tag: string; period: string }> }) {
+  const { tag, period } = await params;
+  
+  const data = await getCoursesByTags(tag, period);
+  const transformedCourses = data.courses.map(transformCourseData);
   
   return (
     <main className="container mx-auto px-4 py-8">
@@ -70,8 +67,8 @@ export default async function TagPeriodPage({
       {/* コース一覧 */}
       <Suspense fallback={<div>コースを読み込み中...</div>}>
         <UdemyCourseList 
-          courses={data.courses} 
-          period={period} 
+          courses={transformedCourses} 
+          period={period as Period} 
           tag={tag} 
           isSearchResultPage={true} 
         />

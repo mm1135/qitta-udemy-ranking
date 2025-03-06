@@ -44,10 +44,12 @@ const GET_COURSE_DETAILS = gql`
   }
 `;
 
-export default async function CourseDetailsPage({ params }: { params: { id: string } }) {
+export default async function CourseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  
   const { data } = await getClient().query({
     query: GET_COURSE_DETAILS,
-    variables: { id: params.id },
+    variables: { id: id },
   });
 
   if (!data?.courseDetails) {

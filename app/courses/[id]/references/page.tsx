@@ -1,9 +1,11 @@
-import { getPeriodRanking } from "@/lib/courseRanking";
+// import { getPeriodRanking } from "@/lib/courseRanking";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 
-export default async function CourseReferencesPage({ params }: { params: { id: string } }) {
-  const courseId = params.id;
+export default async function CourseReferencesPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  const courseId = id;
   
   // コース情報を取得
   const course = await prisma.udemyCourse.findUnique({

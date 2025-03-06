@@ -3,15 +3,15 @@ import prisma from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // paramsを非同期で扱う
-    const { id } = await Promise.resolve(params);
+    // paramsを非同期で解決する
+    const { id } = await params;
     const courseId = id;
     
     // URLからperiodパラメータを取得
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const period = searchParams.get('period') || 'all';
     
     // コースが存在するか確認

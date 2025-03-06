@@ -1,22 +1,21 @@
 import { Suspense } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UdemyCourseList from "@/components/UdemyCourseList";
-import TagsList from "@/components/TagsList";
-import { getCoursesByTags } from "@/lib/courseTags";
+import { getCoursesByTags, transformCourseData } from "@/lib/courseRanking";
 import Link from "next/link";
 import TagSearch from "@/components/TagSearch";
 
-interface TagPageProps {
-  params: {
-    tag: string;
-  };
-}
-
-export default async function TagPage({ params }: TagPageProps) {
-  const tag = decodeURIComponent(params.tag);
+export default async function TagPage({ 
+  params 
+}: { 
+  params: Promise<{ tag: string }> 
+}) {
+  // 非同期でパラメータを解決
+  const { tag: encodedTag } = await params;
+  const tag = decodeURIComponent(encodedTag);
   
   // タグに関連するコースを取得
-  const { courses } = await getCoursesByTags([tag], 'all');
+  const data = await getCoursesByTags(tag, "all");
+  const transformedCourses = data.courses.map(transformCourseData);
   
   return (
     <main className="container mx-auto px-4 py-8">
@@ -27,63 +26,50 @@ export default async function TagPage({ params }: TagPageProps) {
       </div>
       
       <h1 className="text-3xl font-bold mb-2 text-center">
-        「{tag}」に関するUdemy講座
+        「{tag}」のコース一覧
       </h1>
       <p className="text-center mb-8 text-gray-600">
-        {courses.length}件の講座が見つかりました
+        {data.pagination.total}件のコースが見つかりました
       </p>
       
-      {/* タグ検索フォームを追加 */}
+      {/* タグ検索フォーム */}
       <div className="max-w-md mx-auto mb-8">
         <TagSearch />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-1">
-          <Suspense fallback={<div>タグを読み込み中...</div>}>
-            <TagsList />
-          </Suspense>
-        </div>
-        
-        <div className="lg:col-span-3">
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex justify-center mb-8">
-              <TabsList>
-                <TabsTrigger value="all">すべて</TabsTrigger>
-                <TabsTrigger value="yearly">年間</TabsTrigger>
-                <TabsTrigger value="monthly">月間</TabsTrigger>
-              </TabsList>
-            </div>
-            
-            <TabsContent value="all">
-              <UdemyCourseList 
-                courses={courses} 
-                period="all" 
-                tag={tag} 
-                isSearchResultPage={true} 
-              />
-            </TabsContent>
-            
-            <TabsContent value="yearly">
-              <UdemyCourseList 
-                courses={[]} 
-                period="yearly" 
-                tag={tag} 
-                isSearchResultPage={true} 
-              />
-            </TabsContent>
-            
-            <TabsContent value="monthly">
-              <UdemyCourseList 
-                courses={[]} 
-                period="monthly" 
-                tag={tag} 
-                isSearchResultPage={true} 
-              />
-            </TabsContent>
-          </Tabs>
+      {/* 期間切り替えタブ */}
+      <div className="mb-8">
+        <div className="flex justify-center space-x-4">
+          <Link 
+            href={`/tags/${encodeURIComponent(tag)}`}
+            className="px-4 py-2 rounded-md bg-blue-600 text-white"
+          >
+            全期間
+          </Link>
+          <Link 
+            href={`/tags/${encodeURIComponent(tag)}/yearly`}
+            className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
+          >
+            年間
+          </Link>
+          <Link 
+            href={`/tags/${encodeURIComponent(tag)}/monthly`}
+            className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
+          >
+            月間
+          </Link>
         </div>
       </div>
+      
+      {/* コース一覧 */}
+      <Suspense fallback={<div>コースを読み込み中...</div>}>
+        <UdemyCourseList 
+          courses={transformedCourses} 
+          period="all" 
+          tag={tag} 
+          isSearchResultPage={true} 
+        />
+      </Suspense>
     </main>
   );
 } 

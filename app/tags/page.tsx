@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import Link from "next/link";
 import { getPopularCourseTags } from "@/lib/courseTags";
 import TagSearch from "@/components/TagSearch";
