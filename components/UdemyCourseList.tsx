@@ -58,22 +58,22 @@ export default function UdemyCourseList({
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const lastCourseElementRef = useRef<HTMLDivElement | null>(null);
+  // 既存のコースIDを追跡するための参照を追加
+  const existingCoursesRef = useRef(new Set<string>());
 
   // コンポーネントの状態に表示中の全タグを追加
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set());
 
-  // コンポーネントの先頭でデバッグログを出力
-  console.log("UdemyCourseList props:", { 
-    coursesCount: initialCourses.length, 
-    period, 
-    tag, 
-    isSearchResultPage 
-  });
+  // initialCourses が変わった時に既存のコースIDセットを更新
+  useEffect(() => {
+    existingCoursesRef.current = new Set(initialCourses.map(course => course.id));
+    setCourses(initialCourses);
+    setPage(1);
+  }, [initialCourses]);
 
   // タグが指定されている場合、APIリクエストにタグを含める
   useEffect(() => {
     const fetchData = async () => {
-      setPage(1); // ページをリセット
       if (period !== "all") {
         setLoading(true);
         try {
@@ -83,7 +83,9 @@ export default function UdemyCourseList({
             : await fetchRankingData(period, 1);
           
           setCourses(data.courses);
+          // existingCoursesRef.current = new Set(data.courses.map(course => course.id));
           setHasMore(data.pagination.hasMore);
+          setPage(1);
         } catch (error) {
           console.error("ランキングデータの取得に失敗しました:", error);
         } finally {
@@ -95,47 +97,61 @@ export default function UdemyCourseList({
     fetchData();
   }, [period, tag]);
 
-  // 追加データの読み込み - タグ対応
+  // 追加データの読み込み - ID参照を使用して最適化
   const loadMoreCourses = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      // APIエンドポイントを修正
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const url = tag
         ? `${baseUrl}/api/courses/bytag/${encodeURIComponent(tag)}?period=${period}&page=${nextPage}`
         : `${baseUrl}/api/rankings/${period}?page=${nextPage}`;
       
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
       const data = await response.json();
       
-      // 重複を防ぐために既存のコースIDを追跡
-      const existingIds = new Set(courses.map(course => course.id));
-      const newCourses = data.courses.filter((course: UdemyCourse) => !existingIds.has(course.id));
+      // 既存のコースIDを参照して重複を防ぐ
+      const newCoursesFiltered = data.courses.filter((course: UdemyCourse) => {
+        if (existingCoursesRef.current.has(course.id)) return false;
+        existingCoursesRef.current.add(course.id);
+        return true;
+      });
       
-      setCourses(prev => [...prev, ...newCourses]);
-      setPage(nextPage);
-      setHasMore(data.pagination.hasMore);
+      if (newCoursesFiltered.length > 0) {
+        setCourses(prev => [...prev, ...newCoursesFiltered]);
+        setPage(nextPage);
+        setHasMore(data.pagination.hasMore);
+      } else if (data.pagination.hasMore) {
+        // データはないが、まだ次ページがある場合は次ページを読み込む
+        setPage(nextPage);
+      } else {
+        setHasMore(false);
+      }
     } catch (error) {
       console.error("追加データの取得に失敗:", error);
+      setHasMore(false);
     } finally {
       setLoadingMore(false);
     }
-  }, [period, page, hasMore, loadingMore, tag, courses]);
+  }, [period, page, hasMore, loadingMore, tag]); // coursesを依存関係から除外
 
-  // Intersection Observerの設定を修正
+  // Intersection Observerの設定 - 依存関係を最小限に
   useEffect(() => {
-    if (loading) return;
+    if (loading || !hasMore || loadingMore) return;
     
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        if (entries[0].isIntersecting) {
           loadMoreCourses();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.5, rootMargin: '200px' }
     );
     
     const lastElement = lastCourseElementRef.current;
@@ -197,21 +213,21 @@ export default function UdemyCourseList({
   }
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-6 relative pb-8">
       {courses.map((course, index) => {
-        // 最後の要素の場合、refを設定
-        const isLastElement = index === courses.length - 1;
+        // 正しいインデックス番号を計算
+        const displayIndex = index + 1;
         
         return (
           <div 
-            key={`${course.id}-${index}`}
+            key={`${course.id}-${displayIndex}`}
             className="bg-white rounded-lg shadow-md p-4"
-            ref={isLastElement ? lastCourseElementRef : undefined}
+            ref={index === courses.length - 1 ? lastCourseElementRef : undefined}
           >
             <div className="flex gap-4">
               {/* ランキング番号 */}
               <div className="flex-shrink-0 flex items-center justify-center h-16 w-16 bg-gray-100 rounded-lg">
-                <span className="text-2xl font-bold text-gray-700">{index + 1}</span>
+                <span className="text-2xl font-bold text-gray-700">{displayIndex}</span>
               </div>
               
               {/* コース情報 */}
@@ -359,7 +375,7 @@ export default function UdemyCourseList({
         </div>
       )}
       
-      {/* もっと読み込むボタン（オプション） */}
+      {/* もっと読み込むボタン */}
       {hasMore && !loadingMore && (
         <div className="text-center py-4">
           <button 
