@@ -24,7 +24,25 @@ export async function GET(
       limit
     );
     
-    return NextResponse.json(result, {
+    const optimizedCourses = result.courses.map(course => ({
+      id: course.id,
+      title: course.title,
+      url: course.url,
+      instructor: course.instructor,
+      price: course.price,
+      currentPrice: course.currentPrice,
+      rating: course.rating,
+      studentsCount: course.studentsCount,
+      mentionCount: course.mentionCount,
+      yearlyMentionCount: course.yearlyMentionCount,
+      monthlyMentionCount: course.monthlyMentionCount,
+      tags: course.tags.slice(0, 10)
+    }));
+
+    return NextResponse.json({
+      courses: optimizedCourses,
+      pagination: result.pagination
+    }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

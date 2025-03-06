@@ -97,11 +97,19 @@ export default function UdemyCourseList({
     fetchData();
   }, [period, tag]);
 
-  // 追加データの読み込み - ID参照を使用して最適化
+  // 追加データの読み込み - タイムアウト処理を追加
   const loadMoreCourses = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     
     setLoadingMore(true);
+    
+    // タイムアウト処理
+    const timeoutId = setTimeout(() => {
+      console.error("データ読み込みがタイムアウトしました");
+      setLoadingMore(false);
+      setHasMore(false); // タイムアウト時はこれ以上ロードしない
+    }, 15000); // 15秒でタイムアウト
+    
     try {
       const nextPage = page + 1;
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -109,12 +117,18 @@ export default function UdemyCourseList({
         ? `${baseUrl}/api/courses/bytag/${encodeURIComponent(tag)}?period=${period}&page=${nextPage}`
         : `${baseUrl}/api/rankings/${period}?page=${nextPage}`;
       
-      const response = await fetch(url);
+      console.log(`追加データ読み込み開始: ${url}`);
+      
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000) // 10秒でリクエストタイムアウト
+      });
+      
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log(`追加データ取得成功: ${nextPage}ページ目, ${data.courses.length}件`);
       
       // 既存のコースIDを参照して重複を防ぐ
       const newCoursesFiltered = data.courses.filter((course: UdemyCourse) => {
@@ -137,21 +151,23 @@ export default function UdemyCourseList({
       console.error("追加データの取得に失敗:", error);
       setHasMore(false);
     } finally {
+      clearTimeout(timeoutId); // タイムアウトタイマーをクリア
       setLoadingMore(false);
     }
-  }, [period, page, hasMore, loadingMore, tag]); // coursesを依存関係から除外
+  }, [period, page, hasMore, loadingMore, tag]);
 
-  // Intersection Observerの設定 - 依存関係を最小限に
+  // Intersection Observerの設定 - 修正
   useEffect(() => {
     if (loading || !hasMore || loadingMore) return;
     
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
-          loadMoreCourses();
+          // すぐにトリガーされすぎるのを防ぐために少し遅延
+          setTimeout(() => loadMoreCourses(), 100);
         }
       },
-      { threshold: 0.5, rootMargin: '200px' }
+      { threshold: 0.1, rootMargin: '100px' }
     );
     
     const lastElement = lastCourseElementRef.current;
@@ -163,6 +179,7 @@ export default function UdemyCourseList({
       if (lastElement) {
         observer.unobserve(lastElement);
       }
+      observer.disconnect();
     };
   }, [loading, hasMore, loadingMore, loadMoreCourses]);
   
