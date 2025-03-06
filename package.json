@@ -1,0 +1,58 @@
+{
+  "name": "udemy-ranking",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "collect-data": "ts-node scripts/collect-data.ts",
+    "collect-qiita": "node scripts/collect-qiita.js",
+    "sample": "node scripts/sample.js",
+    "update-courses": "node scripts/collect-udemy-details.js"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "dependencies": {
+    "@apollo/client": "^3.13.1",
+    "@apollo/experimental-nextjs-app-support": "^0.11.9",
+    "@apollo/server": "^4.11.3",
+    "@as-integrations/next": "^3.2.0",
+    "@prisma/client": "^6.4.1",
+    "@radix-ui/react-avatar": "^1.1.3",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.3",
+    "@types/node-cron": "^3.0.11",
+    "@types/node-fetch": "^2.6.12",
+    "apify-client": "^2.12.0",
+    "chart.js": "^4.4.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "graphql": "^16.10.0",
+    "graphql-tag": "^2.12.6",
+    "lucide-react": "^0.477.0",
+    "next": "15.2.1",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/chart.js": "^2.9.41",
+    "@types/node": "^20.17.23",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.1",
+    "prisma": "^6.4.1",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

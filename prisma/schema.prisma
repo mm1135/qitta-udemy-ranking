@@ -1,0 +1,67 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model UdemyCourse {
+    id            String          @id
+    title         String
+    url           String
+    imageUrl      String?
+    instructor    String
+    price         Float
+    currentPrice  Float
+    rating        Float
+    studentsCount Int
+    mentions      CourseMention[]
+    tags          CourseTag[]
+    priceHistory  PriceHistory[]
+    createdAt     DateTime        @default(now())
+    updatedAt     DateTime        @updatedAt
+    mentionCount  Int             @default(1) // 言及回数
+    qiitaArticles QiitaArticle[] // 多対多関係
+}
+
+model QiitaArticle {
+    id            String          @id
+    title         String
+    url           String
+    likes         Int
+    views         Int             @default(0)
+    author        String
+    tags          String[]
+    publishedAt   DateTime
+    createdAt     DateTime        @default(now())
+    udemyCourses  UdemyCourse[] // 多対多関係
+    CourseMention CourseMention[]
+}
+
+model CourseMention {
+    id        String       @id @default(uuid())
+    courseId  String
+    articleId String
+    course    UdemyCourse  @relation(fields: [courseId], references: [id])
+    article   QiitaArticle @relation(fields: [articleId], references: [id])
+    createdAt DateTime     @default(now())
+}
+
+model CourseTag {
+    id        String      @id @default(uuid())
+    courseId  String
+    tag       String
+    course    UdemyCourse @relation(fields: [courseId], references: [id])
+    createdAt DateTime    @default(now())
+}
+
+model PriceHistory {
+    id        String      @id @default(uuid())
+    courseId  String
+    price     Float
+    date      DateTime
+    course    UdemyCourse @relation(fields: [courseId], references: [id])
+    createdAt DateTime    @default(now())
+}
