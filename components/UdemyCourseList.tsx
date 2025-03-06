@@ -305,46 +305,47 @@ export default function UdemyCourseList({
             
             {/* 引用記事セクション */}
             {expandedCourse === course.id && (
-              <div className="mt-4 border-t pt-4">
-                <h3 className="text-lg font-medium mb-3">引用されているQiita記事 Top5</h3>
+              <div className="border-t border-gray-100 bg-gray-50 p-6">
+                <h3 className="text-lg font-semibold mb-4">引用されているQiita記事 Top5</h3>
                 {references[course.id] ? (
                   references[course.id].length > 0 ? (
                     <div className="space-y-3">
                       {references[course.id].slice(0, 5).map(ref => (
-                        <div key={ref.id} className="flex justify-between items-start p-2 border-b">
+                        <div key={ref.id} 
+                          className="bg-white p-4 rounded-lg shadow-sm hover:shadow transition-shadow"
+                        >
                           <a 
                             href={ref.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline flex-grow"
+                            className="text-gray-900 hover:text-blue-600 transition-colors block mb-2"
                           >
                             {ref.title}
                           </a>
-                          <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded ml-2 whitespace-nowrap">
-                            いいね: {ref.likes}
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                            bg-yellow-50 text-yellow-700">
+                            👍 {ref.likes} いいね
                           </span>
                         </div>
                       ))}
-                      <div className="text-right">
+                      <div className="text-right mt-4">
                         <a 
-                          href={`/courses/${course.id}/references?period=${period}`} 
-                          className="text-sm text-blue-600 hover:underline"
+                          href={`/courses/${course.id}/references?period=${period}`}
+                          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
                         >
-                          全ての引用記事を見る（{period === 'yearly' 
-                            ? course.yearlyMentionCount 
-                            : period === 'monthly' 
-                              ? course.monthlyMentionCount 
-                              : course.mentionCount}件）
+                          全ての引用記事を見る
+                          <span className="ml-1">→</span>
                         </a>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500">引用記事が見つかりませんでした</p>
+                    <p className="text-gray-500 text-center py-4">
+                      引用記事が見つかりませんでした
+                    </p>
                   )
                 ) : (
-                  <div className="flex justify-center p-4">
-                    <div className="animate-spin h-5 w-5 border-2 border-blue-600 rounded-full border-t-transparent"></div>
-                    <span className="ml-2">読み込み中...</span>
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin h-6 w-6 border-3 border-blue-600 rounded-full border-t-transparent"></div>
                   </div>
                 )}
               </div>

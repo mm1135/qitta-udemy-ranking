@@ -6,7 +6,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const courseId = params.id;
+    // paramsを非同期で扱う
+    const { id } = await Promise.resolve(params);
+    const courseId = id;
     
     // URLからperiodパラメータを取得
     const { searchParams } = new URL(request.url);
