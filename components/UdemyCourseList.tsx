@@ -5,6 +5,7 @@ import { fetchRankingData, fetchCoursesByTag } from "@/lib/clientRanking";
 import { fetchCourseReferences } from "@/lib/courseReferences";
 import ScrollToTop from "./ScrollToTop";
 import Link from "next/link";
+import { Users2, MessageSquare } from "lucide-react";
 
 type Period = "all" | "yearly" | "monthly";
 
@@ -30,6 +31,8 @@ interface UdemyCourse {
   rating: number;
   studentsCount: number;
   mentionCount: number;
+  yearlyMentionCount: number;
+  monthlyMentionCount: number;
   references?: QiitaReference[];
   tags?: CourseTag[];
 }
@@ -44,11 +47,13 @@ interface Pagination {
 export default function UdemyCourseList({ 
   courses: initialCourses, 
   period,
-  tag
+  tag,
+  isSearchResultPage = false
 }: { 
   courses: UdemyCourse[], 
   period: Period,
-  tag?: string  // タグパラメータをオプショナルに設定
+  tag?: string,
+  isSearchResultPage?: boolean
 }) {
   const [courses, setCourses] = useState<UdemyCourse[]>(initialCourses);
   const [loading, setLoading] = useState(period !== "all");
@@ -61,6 +66,17 @@ export default function UdemyCourseList({
   const [loadingMore, setLoadingMore] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const lastCourseElementRef = useRef<HTMLDivElement | null>(null);
+
+  // コンポーネントの状態に表示中の全タグを追加
+  const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set());
+
+  // コンポーネントの先頭でデバッグログを出力
+  console.log("UdemyCourseList props:", { 
+    coursesCount: initialCourses.length, 
+    period, 
+    tag, 
+    isSearchResultPage 
+  });
 
   // タグが指定されている場合、APIリクエストにタグを含める
   useEffect(() => {
@@ -138,23 +154,18 @@ export default function UdemyCourseList({
   }, [loading, hasMore, loadMoreCourses]);
   
   // コースの引用記事を取得
-  const loadReferences = async (courseId: string) => {
-    if (references[courseId]) return; // 既に取得済みの場合はスキップ
-    
+  const fetchReferences = useCallback(async (courseId: string) => {
     try {
-      const refs = await fetchCourseReferences(courseId);
+      // 期間パラメータを追加
+      const refs = await fetchCourseReferences(courseId, period);
       setReferences(prev => ({
         ...prev,
         [courseId]: refs
       }));
     } catch (error) {
-      console.error(`コース${courseId}の引用記事取得に失敗:`, error);
-      setReferences(prev => ({
-        ...prev,
-        [courseId]: []
-      }));
+      console.error(`Error fetching references for course ${courseId}:`, error);
     }
-  };
+  }, [period]);
 
   // コースの詳細表示を切り替える
   const toggleCourseDetails = async (courseId: string) => {
@@ -162,8 +173,22 @@ export default function UdemyCourseList({
       setExpandedCourse(null);
     } else {
       setExpandedCourse(courseId);
-      await loadReferences(courseId);
+      await fetchReferences(courseId);
     }
+  };
+
+  // タグの表示/非表示を切り替える関数
+  const toggleTagsDisplay = (courseId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const newExpandedTags = new Set(expandedTags);
+    if (newExpandedTags.has(courseId)) {
+      newExpandedTags.delete(courseId);
+    } else {
+      newExpandedTags.add(courseId);
+    }
+    setExpandedTags(newExpandedTags);
   };
 
   if (loading) {
@@ -207,21 +232,30 @@ export default function UdemyCourseList({
                     </a>
                   </h3>
                   <p className="text-gray-600 mb-2">講師: {course.instructor}</p>
-                  <div className="flex flex-wrap text-sm text-gray-500 mb-3">
-                    <span>受講者数: {course.studentsCount.toLocaleString()}</span>
-                    {course.rating > 0 && (
-                      <>
-                        <span className="mx-2">•</span>
-                        <span>評価: {course.rating.toFixed(1)}</span>
-                      </>
-                    )}
+                  <div className="flex items-center text-sm text-gray-600 mb-2">
+                    <span className="flex items-center mr-4">
+                      <Users2 className="w-4 h-4 mr-1" />
+                      {course.studentsCount.toLocaleString()}人
+                    </span>
+                    <span className="flex items-center">
+                      <MessageSquare className="w-4 h-4 mr-1" />
+                      {/* 期間に応じた言及数を表示 */}
+                      {period === 'yearly' 
+                        ? course.yearlyMentionCount 
+                        : period === 'monthly' 
+                          ? course.monthlyMentionCount 
+                          : course.mentionCount}件の記事で言及
+                    </span>
                   </div>
                   
-                  {/* タグ表示 */}
+                  {/* タグ表示 - 全てのタグを表示できるように改善 */}
                   {course.tags && course.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-3">
                       <span className="text-sm text-gray-600">タグ:</span>
-                      {course.tags.map(tag => (
+                      {(isSearchResultPage || expandedTags.has(course.id) 
+                        ? course.tags 
+                        : course.tags.slice(0, 5)
+                      ).map(tag => (
                         <Link
                           key={tag.name}
                           href={`/tags/${encodeURIComponent(tag.name)}`}
@@ -230,12 +264,28 @@ export default function UdemyCourseList({
                           {tag.name}
                         </Link>
                       ))}
+                      
+                      {/* 検索結果ページでなく、タグが5件以上ある場合は「もっと見る」ボタンを表示 */}
+                      {!isSearchResultPage && course.tags.length > 5 && (
+                        <button
+                          onClick={(e) => toggleTagsDisplay(course.id, e)}
+                          className="text-xs text-blue-600 hover:underline ml-1"
+                        >
+                          {expandedTags.has(course.id) 
+                            ? "タグを折りたたむ" 
+                            : `+${course.tags.length - 5}件のタグを表示`}
+                        </button>
+                      )}
                     </div>
                   )}
                   
                   <div className="flex items-center">
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
-                      言及数: {course.mentionCount}
+                      言及数: {period === 'yearly' 
+                        ? course.yearlyMentionCount 
+                        : period === 'monthly' 
+                          ? course.monthlyMentionCount 
+                          : course.mentionCount}
                     </span>
                     {course.currentPrice > 0 && (
                       <span className="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">
@@ -277,10 +327,14 @@ export default function UdemyCourseList({
                       ))}
                       <div className="text-right">
                         <a 
-                          href={`/courses/${course.id}/references`} 
+                          href={`/courses/${course.id}/references?period=${period}`} 
                           className="text-sm text-blue-600 hover:underline"
                         >
-                          全ての引用記事を見る（{course.mentionCount}件）
+                          全ての引用記事を見る（{period === 'yearly' 
+                            ? course.yearlyMentionCount 
+                            : period === 'monthly' 
+                              ? course.monthlyMentionCount 
+                              : course.mentionCount}件）
                         </a>
                       </div>
                     </div>

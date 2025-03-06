@@ -10,7 +10,8 @@
     "collect-data": "ts-node scripts/collect-data.ts",
     "collect-qiita": "node scripts/collect-qiita.js",
     "sample": "node scripts/sample.js",
-    "update-courses": "node scripts/collect-udemy-details.js"
+    "update-courses": "node scripts/collect-udemy-details.js",
+    "update-mentions": "node scripts/update-mention-counts.js"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

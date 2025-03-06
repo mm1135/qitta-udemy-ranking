@@ -21,28 +21,21 @@ export async function getPeriodRanking(period: RankingPeriod, page = 1, limit = 
       startDate.setMonth(startDate.getMonth() - 1);
     }
     
-    // 条件を構築
-    const whereCondition: any = {};
-    
-    // 期間条件を追加
-    if (startDate) {
-      whereCondition.qiitaArticles = {
-        some: {
-          publishedAt: {
-            gte: startDate
-          }
-        }
-      };
-    }
-    
     // スキップする件数を計算
     const skip = (page - 1) * limit;
     
+    // 期間に応じたソートフィールドを選択
+    let orderByField = 'mentionCount';
+    if (period === 'yearly') {
+      orderByField = 'yearlyMentionCount';
+    } else if (period === 'monthly') {
+      orderByField = 'monthlyMentionCount';
+    }
+    
     // コースを取得
     const courses = await prisma.udemyCourse.findMany({
-      where: whereCondition,
       orderBy: {
-        mentionCount: 'desc'
+        [orderByField]: 'desc'
       },
       skip,
       take: limit,
@@ -76,8 +69,7 @@ export async function getPeriodRanking(period: RankingPeriod, page = 1, limit = 
       // 出現回数順にソート
       const sortedTags = Object.entries(tagCounts)
         .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5); // 上位5件のみ
+        .sort((a, b) => b.count - a.count);
       
       // qiitaArticlesを削除して新しいオブジェクトを返す
       const { qiitaArticles, ...courseData } = course;
@@ -89,9 +81,7 @@ export async function getPeriodRanking(period: RankingPeriod, page = 1, limit = 
     });
     
     // 総コース数も取得
-    const totalCount = await prisma.udemyCourse.count({
-      where: whereCondition
-    });
+    const totalCount = await prisma.udemyCourse.count();
     
     return {
       courses: coursesWithTags,

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import Link from "next/link";
 import { getPopularCourseTags } from "@/lib/courseTags";
+import TagSearch from "@/components/TagSearch";
 
 export default async function AllTagsPage() {
   const tags = await getPopularCourseTags(1000);
@@ -19,6 +20,10 @@ export default async function AllTagsPage() {
       <p className="text-center mb-8 text-gray-600">
         {tags.length}件のタグが見つかりました
       </p>
+      
+      <div className="max-w-md mx-auto mb-8">
+        <TagSearch />
+      </div>
       
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex flex-wrap gap-3">

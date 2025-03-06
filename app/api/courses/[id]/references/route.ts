@@ -8,26 +8,53 @@ export async function GET(
   try {
     const courseId = params.id;
     
+    // URLからperiodパラメータを取得
+    const { searchParams } = new URL(request.url);
+    const period = searchParams.get('period') || 'all';
+    
     // コースが存在するか確認
     const course = await prisma.udemyCourse.findUnique({
-      where: { id: courseId }
+      where: {
+        id: courseId
+      }
     });
     
     if (!course) {
       return NextResponse.json(
-        { error: '指定されたコースが見つかりません' },
+        { error: 'コースが見つかりません' },
         { status: 404 }
       );
     }
     
-    // コースに関連するQiita記事を取得し、いいね数でソート
-    const references = await prisma.qiitaArticle.findMany({
+    // 期間に応じたフィルタ条件を作成
+    let dateFilter = {};
+    if (period === 'yearly') {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      dateFilter = {
+        publishedAt: {
+          gte: oneYearAgo
+        }
+      };
+    } else if (period === 'monthly') {
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      dateFilter = {
+        publishedAt: {
+          gte: oneMonthAgo
+        }
+      };
+    }
+    
+    // コースに関連する記事を取得（期間でフィルタリング）
+    const articles = await prisma.qiitaArticle.findMany({
       where: {
         udemyCourses: {
           some: {
             id: courseId
           }
-        }
+        },
+        ...dateFilter
       },
       orderBy: {
         likes: 'desc'
@@ -37,17 +64,21 @@ export async function GET(
         title: true,
         url: true,
         likes: true,
-        views: true,
-        author: true,
-        publishedAt: true
+        publishedAt: true,
+        tags: true
       }
     });
     
-    return NextResponse.json({ references });
+    return NextResponse.json({ 
+      course,
+      articles,
+      total: articles.length,
+      period
+    });
   } catch (error) {
-    console.error('References API error:', error);
+    console.error('Error fetching course references:', error);
     return NextResponse.json(
-      { error: '引用記事の取得中にエラーが発生しました' },
+      { error: '記事の取得中にエラーが発生しました' },
       { status: 500 }
     );
   }

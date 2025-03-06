@@ -9,8 +9,12 @@ interface Tag {
   count: number;
 }
 
-export default function TagSearch() {
-  const [searchTerm, setSearchTerm] = useState("");
+interface TagSearchProps {
+  initialValue?: string;
+}
+
+export default function TagSearch({ initialValue = "" }: TagSearchProps) {
+  const [searchTerm, setSearchTerm] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -80,14 +84,19 @@ export default function TagSearch() {
     };
   }, []);
 
+  // 検索フォーム送信処理
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      router.push(`/tags/${encodeURIComponent(searchTerm.trim())}`);
+      // 検索結果ページに遷移
+      router.push(`/search/tags?q=${encodeURIComponent(searchTerm.trim())}`);
+      setShowSuggestions(false);
     }
   };
-
+  
+  // サジェスト選択処理
   const handleSuggestionClick = (tagName: string) => {
+    // タグページに直接遷移
     router.push(`/tags/${encodeURIComponent(tagName)}`);
     setShowSuggestions(false);
     setSearchTerm("");

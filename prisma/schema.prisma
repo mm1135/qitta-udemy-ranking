@@ -8,22 +8,25 @@ datasource db {
 }
 
 model UdemyCourse {
-    id            String          @id
-    title         String
-    url           String
-    imageUrl      String?
-    instructor    String
-    price         Float
-    currentPrice  Float
-    rating        Float
-    studentsCount Int
-    mentions      CourseMention[]
-    tags          CourseTag[]
-    priceHistory  PriceHistory[]
-    createdAt     DateTime        @default(now())
-    updatedAt     DateTime        @updatedAt
-    mentionCount  Int             @default(1) // 言及回数
-    qiitaArticles QiitaArticle[] // 多対多関係
+    id                  String          @id
+    title               String
+    url                 String
+    imageUrl            String?
+    instructor          String
+    price               Float
+    currentPrice        Float
+    rating              Float
+    studentsCount       Int
+    mentions            CourseMention[]
+    tags                CourseTag[]
+    priceHistory        PriceHistory[]
+    createdAt           DateTime        @default(now())
+    updatedAt           DateTime        @updatedAt
+    mentionCount        Int             @default(0) // 全期間の言及数
+    yearlyMentionCount  Int             @default(0) // 年間の言及数
+    monthlyMentionCount Int             @default(0) // 月間の言及数
+    lastUpdated         DateTime        @default(now())
+    qiitaArticles       QiitaArticle[] // 多対多関係
 }
 
 model QiitaArticle {

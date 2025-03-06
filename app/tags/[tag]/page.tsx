@@ -4,6 +4,7 @@ import UdemyCourseList from "@/components/UdemyCourseList";
 import TagsList from "@/components/TagsList";
 import { getCoursesByTags } from "@/lib/courseTags";
 import Link from "next/link";
+import TagSearch from "@/components/TagSearch";
 
 interface TagPageProps {
   params: {
@@ -32,6 +33,11 @@ export default async function TagPage({ params }: TagPageProps) {
         {courses.length}件の講座が見つかりました
       </p>
       
+      {/* タグ検索フォームを追加 */}
+      <div className="max-w-md mx-auto mb-8">
+        <TagSearch />
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-1">
           <Suspense fallback={<div>タグを読み込み中...</div>}>
@@ -50,15 +56,30 @@ export default async function TagPage({ params }: TagPageProps) {
             </div>
             
             <TabsContent value="all">
-              <UdemyCourseList courses={courses} period="all" tag={tag} />
+              <UdemyCourseList 
+                courses={courses} 
+                period="all" 
+                tag={tag} 
+                isSearchResultPage={true} 
+              />
             </TabsContent>
             
             <TabsContent value="yearly">
-              <UdemyCourseList courses={[]} period="yearly" tag={tag} />
+              <UdemyCourseList 
+                courses={[]} 
+                period="yearly" 
+                tag={tag} 
+                isSearchResultPage={true} 
+              />
             </TabsContent>
             
             <TabsContent value="monthly">
-              <UdemyCourseList courses={[]} period="monthly" tag={tag} />
+              <UdemyCourseList 
+                courses={[]} 
+                period="monthly" 
+                tag={tag} 
+                isSearchResultPage={true} 
+              />
             </TabsContent>
           </Tabs>
         </div>
